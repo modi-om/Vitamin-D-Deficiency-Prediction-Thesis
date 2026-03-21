@@ -9,512 +9,512 @@ from sklearn.experimental import enable_iterative_imputer  # noqa
 from sklearn.impute import IterativeImputer
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
-# # =====================================================
-# # Helper function to load XPT files
-# # =====================================================
-# def load_xpt(url, columns=None):
-#     try:
-#         r = requests.get(url)
-#         r.raise_for_status()
-#         df = pd.read_sas(BytesIO(r.content), format="xport")
-#         if columns:
-#             df = df[[c for c in columns if c in df.columns]]
-#         return df
-#     except Exception as e:
-#         print(f"Warning: Could not load {url}: {e}")
-#         return pd.DataFrame()
-
-# # =====================================================
-# # Cap PA days between 0–7
-# # =====================================================
-# def cap_range(series, max_val=7):
-#     return series.clip(lower=0, upper=max_val)
-
-# # =====================================================
-# # PA category
-# # =====================================================
-# def pa_category(x):
-#     if pd.isna(x):
-#         return np.nan
-#     elif x <= 2:
-#         return "Low"
-#     elif x <= 4:
-#         return "Moderate"
-#     return "High"
-
-
-# # =====================================================
-# # Cycle → File → Variables
-# # =====================================================
-
-# CYCLE_FILE_VARS = {
-#     "2001": {
-#         "DEMO_B": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_B": ["SEQN","BMXBMI"],
-#         "SMQ_B": ["SEQN","SMQ020","SMQ040"],
-#         "ALQ_B": ["SEQN","ALD100"],
-#         "DBQ_B": ["SEQN","DBD229"],
-#         "DRXTOT_B": ["SEQN","DRXTCALC"],
-#         "DIQ_B": ["SEQN","DIQ010"],
-#         "DEQ_B": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
-#         "PAQ_B": ["SEQN","PAD020","PAQ050Q","PAQ050U"],
-#         "L40_B": ["SEQN","LBXSCA"],
-#         "VID_B": ["SEQN","LBDVIDMS"]
-#     },
-#     "2003": {
-#         "DEMO_C": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_C": ["SEQN","BMXBMI"],
-#         "SMQ_C": ["SEQN","SMQ020","SMQ040"],
-#         "ALQ_C": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
-#         "DBQ_C": ["SEQN","DBQ229"],
-#         "DR1TOT_C": ["SEQN","DR1TCALC"],
-#         "DR2TOT_C": ["SEQN","DR2TCALC"],
-#         "DIQ_C": ["SEQN","DIQ010"],
-#         "DEQ_C": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
-#         "PAQ_C": ["SEQN","PAD020","PAQ050Q","PAQ050U"],
-#         "L40_C": ["SEQN","LBXSCA"],
-#         "VID_C": ["SEQN","LBDVIDMS"]
-#     },
-#     "2005": {
-#         "DEMO_D": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_D": ["SEQN","BMXBMI"],
-#         "SMQ_D": ["SEQN","SMQ020","SMQ040"],
-#         "ALQ_D": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
-#         "DBQ_D": ["SEQN","DBQ229"],
-#         "DR1TOT_D": ["SEQN","DR1TCALC"],
-#         "DR2TOT_D": ["SEQN","DR2TCALC"],
-#         "DIQ_D": ["SEQN","DIQ010"],
-#         "DEQ_D": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
-#         "PAQ_D": ["SEQN","PAD020","PAQ050Q","PAQ050U"],
-#         "BIOPRO_D": ["SEQN","LBXSCA"],
-#         "VID_D": ["SEQN","LBDVIDMS"]
-#     },
-#     "2007": {
-#         "DEMO_E": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_E": ["SEQN","BMXBMI"],
-#         "SMQ_E": ["SEQN","SMQ020","SMQ040"],
-#         "ALQ_E": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
-#         "DBQ_E": ["SEQN","DBQ229"],
-#         "DR1TOT_E": ["SEQN","DR1TCALC"],
-#         "DR2TOT_E": ["SEQN","DR2TCALC"],
-#         "DIQ_E": ["SEQN","DIQ010"],
-#         # "DEQ_E": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"], # File Not Present
-#         "PAQ_E": ["SEQN","PAQ640","PAQ655","PAQ670"],
-#         "BIOPRO_E": ["SEQN","LBXSCA"],
-#         "VID_E": ["SEQN","LBXVIDMS"]
-#     },
-#     "2009": {
-#         "DEMO_F": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_F": ["SEQN","BMXBMI"],
-#         "SMQ_F": ["SEQN","SMQ020","SMQ040"],
-#         "ALQ_F": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
-#         "DBQ_F": ["SEQN","DBQ229"],
-#         "DR1TOT_F": ["SEQN","DR1TCALC"],
-#         "DR2TOT_F": ["SEQN","DR2TCALC"],
-#         "DIQ_F": ["SEQN","DIQ010"],
-#         "DEQ_F": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
-#         "PAQ_F": ["SEQN","PAQ640","PAQ655","PAQ670"],
-#         "BIOPRO_F": ["SEQN","LBXSCA"],
-#         "VID_F": ["SEQN","LBXVIDMS"]
-#     },
-#     "2011": {
-#         "DEMO_G": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_G": ["SEQN","BMXBMI"],
-#         "SMQ_G": ["SEQN","SMQ020","SMQ040"],
-#         "ALQ_G": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
-#         "DBQ_G": ["SEQN","DBQ229"],
-#         "DR1TOT_G": ["SEQN","DR1TCALC"],
-#         "DR2TOT_G": ["SEQN","DR2TCALC"],
-#         "DIQ_G": ["SEQN","DIQ010"],
-#         "DEQ_G": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
-#         "PAQ_G": ["SEQN","PAQ640","PAQ655","PAQ670"],
-#         "BIOPRO_G": ["SEQN","LBXSCA"],
-#         "VID_G": ["SEQN","LBXVIDMS"]
-#     },
-#     "2013": {
-#         "DEMO_H": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_H": ["SEQN","BMXBMI"],
-#         "SMQ_H": ["SEQN","SMQ020","SMQ040"],
-#         "ALQ_H": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
-#         "DBQ_H": ["SEQN","DBQ229"],
-#         "DR1TOT_H": ["SEQN","DR1TCALC"],
-#         "DR2TOT_H": ["SEQN","DR2TCALC"],
-#         "DIQ_H": ["SEQN","DIQ010"],
-#         "DEQ_H": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
-#         "PAQ_H": ["SEQN","PAQ640","PAQ655","PAQ670"],
-#         "BIOPRO_H": ["SEQN","LBXSCA"],
-#         "VID_H": ["SEQN","LBXVIDMS"]
-#     },
-#     "2015": {
-#         "DEMO_I": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_I": ["SEQN","BMXBMI"],
-#         "SMQ_I": ["SEQN","SMQ020","SMQ040"],
-#         "ALQ_I": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
-#         "DBQ_I": ["SEQN","DBQ229"],
-#         "DR1TOT_I": ["SEQN","DR1TCALC"],
-#         "DR2TOT_I": ["SEQN","DR2TCALC"],
-#         "DIQ_I": ["SEQN","DIQ010"],
-#         "DEQ_I": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
-#         "PAQ_I": ["SEQN","PAQ640","PAQ655","PAQ670"],
-#         "BIOPRO_I": ["SEQN","LBXSCA"],
-#         "VID_I": ["SEQN","LBXVIDMS"]
-#     },
-#     "2017": { 
-#         "DEMO_J": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_J": ["SEQN","BMXBMI"], 
-#         "SMQ_J": ["SEQN","SMQ020","SMQ040"], 
-#         "ALQ_J": ["SEQN","ALQ121"], 
-#         "DBQ_J": ["SEQN","DBQ229"], 
-#         "DR1TOT_J": ["SEQN","DR1TCALC"], 
-#         "DR2TOT_J": ["SEQN","DR2TCALC"], 
-#         "DIQ_J": ["SEQN","DIQ010"], 
-#         "DEQ_J": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"], 
-#         "PAQ_J": ["SEQN","PAQ640","PAQ655","PAQ670"], 
-#         "BIOPRO_J": ["SEQN","LBXSCA"],
-#         "VID_J": ["SEQN","LBXVIDMS"]
-#     },
-#     "2021": {
-#         "DEMO_L": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
-#         "BMX_L": ["SEQN","BMXBMI"],
-#         "SMQ_L": ["SEQN","SMQ020","SMQ040"],
-#         "ALQ_L": ["SEQN","ALQ121"],
-#         "DBQ_L": ["SEQN","PAD790Q","PAD790U","PAD810Q","PAD810U"],
-#         "DR1TOT_L": ["SEQN","DR1TCALC"],
-#         "DR2TOT_L": ["SEQN","DR2TCALC"],
-#         "DIQ_L": ["SEQN","DIQ010"],
-#         "DEQ_L": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
-#         "PAQ_L": ["SEQN","PAD790Q","PAD790U","PAD810Q","PAD810U"],
-#         "BIOPRO_L": ["SEQN","LBXSCA"],
-#         "VID_L": ["SEQN","LBXVIDMS"]  
-#     }
-# }
-
-
-
-# # =====================================================
-# # Derived functions
-# # =====================================================
-# def age_cat(x):
-#     if pd.isna(x): return np.nan
-#     if x < 18: return "<18"
-#     if x <= 44: return "18–44"
-#     if x <= 65: return "45–65"
-#     return ">65"
-
-# def pir_cat(x):
-#     if pd.isna(x): return np.nan
-#     if x <= 1.3: return "Low"
-#     if x <= 3.5: return "Middle"
-#     return "High"
-
-# def bmi_cat(x):
-#     if pd.isna(x): return np.nan
-#     if x < 18.5: return "Underweight"
-#     if x < 25: return "Normal"
-#     if x < 30: return "Overweight"
-#     if x > 30: return "Obese"
-#     else: return np.nan
-
-# def sun_category(x):
-#     if pd.isna(x): return np.nan
-#     if x == 0: return "Never"
-#     if x <= 14: return "Rare"
-#     if x <= 480: return "Sometimes"
-#     if x <= 1440: return "Frequent"
-#     return "Regular"
-
-# # =====================================================
-# # Alcohol harmonization (leave as-is)
-# # =====================================================
-# def alcohol_harmonize(row, cycle):
-#     alc_yesno = np.nan
-#     drinks_per_year = np.nan
-
-#     if cycle == "2001":
-#         val = row.get("ALD100")
-#         if pd.notna(val):
-#             alc_yesno = "Yes" if val == 1 else ("No" if val == 2 else np.nan)
-
-#     elif cycle in ["2003","2005","2007","2009","2011","2013","2015"]:
-#         val = row.get("ALQ101")
-#         alc_yesno = "Yes" if val == 1 else ("No" if val == 2 else np.nan)
-
-#         freq = row.get("ALQ120Q")
-#         unit = row.get("ALQ120U")
-#         if pd.notna(freq) and pd.notna(unit):
-#             if unit == 1:  # per week
-#                 drinks_per_year = freq * 52
-#             elif unit == 2:  # per month
-#                 drinks_per_year = freq * 12
-#             elif unit == 3:  # per year
-#                 drinks_per_year = freq
-
-#     elif cycle in ["2017","2021"]:
-#         val = row.get("ALQ121")
-#         alc_yesno = "Yes" if (pd.notna(val) and ( val > 0 and val <=10 )) else ("No" if val == 0 else np.nan)
-
-#         code_to_drinks = {0:0,1:365,2:330,3:182,4:104,5:52,6:30,7:12,8:9,9:4,10:1}
-#         if pd.notna(val):
-#             drinks_per_year = code_to_drinks.get(int(val), np.nan)
-
-#     return pd.Series([alc_yesno, drinks_per_year])
-
-# # =====================================================
-# # Education harmonization
-# # =====================================================
-# def harmonize_education(educ2, educ3, age):
-
-#     if age < 20:
-#         if pd.isna(educ3) or educ3 in [77,99]: return np.nan
-#         if educ3 in [13, 14, 15]:
-#             return "High school or above"
-#         elif educ3 >= 4:
-#             return "High school or below"
-#         elif educ3 >= 0:
-#             return "Low education"
-#         else:
-#             return np.nan
-#     else:
-#         if pd.isna(educ2) or educ2 in [77,99]: return np.nan
-#         if educ2 in [4, 5]:
-#             return "College"
-#         elif educ2 == 3:
-#             return "High school"
-#         elif educ2 >= 1:
-#             return "Less than high school"
-#         else:
-#             return np.nan
-
-# # =====================================================
-# # Sun helpers
-# # =====================================================
-# def clean_sun_minutes(series):
-#     return series.replace({3333: np.nan, 7777: np.nan, 9999: np.nan})
-
-# def map_sun_behavior(series, shade=False):
-#     if shade:
-#         return series.map({
-#             1: "Always",
-#             2: "Most",
-#             3: "Sometimes",
-#             4: "Rarely",
-#             5: "Never",
-#             6: "No outdoor exposure"
-#         })
-#     else:
-#         return series.map({
-#             1: "Always",
-#             2: "Most",
-#             3: "Sometimes",
-#             4: "Rarely",
-#             5: "Never"
-#         })
-
-# # =====================================================
-# # Load and merge raw files per cycle
-# # =====================================================
-# def load_cycle(cycle):
-#     base = f"https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/{cycle}/DataFiles/"
-#     dfs = {}
-
-#     for file, vars_ in CYCLE_FILE_VARS[cycle].items():
-#         url = f"{base}{file}.XPT"
-#         df = load_xpt(url, vars_)
-#         if not df.empty:
-#             dfs[file] = df
-
-#     if not dfs:
-#         return pd.DataFrame()
-
-#     out = next(iter(dfs.values()))
-#     for df in list(dfs.values())[1:]:
-#         out = out.merge(df, on="SEQN", how="outer")
-
-#     return out
-
-
-# # =====================================================
-# # Harmonize one cycle
-# # =====================================================
-# def harmonize_cycle(cycle):
-#     print(f"Processing {cycle}")
-#     df = load_cycle(cycle)
-#     if df.empty:
-#         return df
-#     h = pd.DataFrame({"SEQN": df["SEQN"]})
-#     h["cycle"] = cycle
-
-#     # MEC weight
-#     h["MEC_weight"] = df.get("WTMEC2YR", np.nan)
-
-#     # Demographics
-#     h["gender"] = df.get("RIAGENDR").map({1:"Male",2:"Female"})
-#     h["age_cat"] = df.get("RIDAGEYR").apply(age_cat)
-#     h["race_ethnicity"] = df.get("RIDRETH1").map({
-#         1:"Mexican American",2:"Other Hispanic",
-#         3:"Non-Hispanic White",4:"Non-Hispanic Black",5:"Other"
-#     }) if df.get("RIDRETH1") is not None else np.nan
-
-#     h["PIR_cat"] = df.get("INDFMPIR").apply(pir_cat)
-
-#     # Education
-#     h["education"] = df.apply(lambda row: harmonize_education(row.get("DMDEDUC2"), row.get("DMDEDUC3"), row.get("RIDAGEYR")), axis=1)
-
-#     # Household size
-#     h["household_size"] = df.get("DMDHHSIZ")
-
-#     # BMI
-#     h["BMI_cat"] = df.get("BMXBMI").apply(bmi_cat) if "BMXBMI" in df.columns else np.nan
-
-#     # Smoking
-#     smq020 = df.get("SMQ020")
-#     smq040 = df.get("SMQ040")
-#     h["smoker_ever"] = smq020.map({1:"Yes",2:"No"}) if smq020 is not None else np.nan
-#     h["smoker_current"] = smq040.map({1:"Every day",2:"Some days",3:"Not at all"}) if smq040 is not None else np.nan
-
-#     # Alcohol
-#     alc = df.apply(lambda row: alcohol_harmonize(row, cycle), axis=1)
-#     h["alcohol_yesno"] = alc[0]
-#     h["alcohol_drinks_per_year"] = alc[1]
-
-#     # Milk intake
-#     if "DBQ229" in df.columns:
-#         milk = df["DBQ229"]
-#     elif "DBD229" in df.columns:
-#         milk = df["DBD229"]
-#     else:
-#         milk = pd.Series(np.nan, index=df.index)
-#     h["milk_intake"] = milk.map({1:"Regular", 2:"Never", 3:"Sometimes"})
-
-#     # Calcium intake
-#     if "DRXTCALC" in df.columns:
-#         h["calcium_intake"] = df["DRXTCALC"]
-#     elif all(col in df.columns for col in ["DR1TCALC","DR2TCALC"]):
-#         h["calcium_intake"] = df[["DR1TCALC","DR2TCALC"]].mean(axis=1, skipna=True)
-#     else:
-#         h["calcium_intake"] = np.nan
-
-#     # Initialize total_PA_days
-#     total_PA_days = pd.Series(np.nan, index=df.index)
-
-#     if cycle in ["2001","2003","2005"]:
-#         # Get variables
-#         pad = df.get("PAD020", pd.Series(np.nan, index=df.index))
-#         q = df.get("PAQ050Q", pd.Series(np.nan, index=df.index))
-#         u = df.get("PAQ050U", pd.Series(np.nan, index=df.index))
-
-#         # Replace special codes with NaN
-#         pad = pad.replace({2:0, 3:0, 7:np.nan, 9:np.nan})  # 1=Yes, 2=No, 3=Unable
-#         q = q.replace({77777:np.nan, 99999:np.nan})
-#         u = u.replace({7:np.nan, 9:np.nan})
-
-#         # Convert units to days
-#         conv = q.copy()
-#         conv[u==1] *= 1      # per day → keep as is
-#         conv[u==2] *= 7      # per week → multiply by 7
-#         conv[u==3] /= 4      # per month → divide by ~4 weeks
-#         conv[u.isna()] = np.nan
-
-#         # Combine with PAD020 contribution
-#         total_PA_days = pad + conv
-#         total_PA_days = total_PA_days.clip(upper=7)  # cap at 7
-
-#     elif cycle in ["2007","2009","2011","2013","2015","2017"]:
-#         # Get variables
-#         pa1 = df.get("PAQ640", pd.Series(np.nan, index=df.index))
-#         pa2 = df.get("PAQ655", pd.Series(np.nan, index=df.index))
-#         pa3 = df.get("PAQ670", pd.Series(np.nan, index=df.index))
-
-#         # Replace special codes with NaN
-#         pa1 = pa1.replace({77:np.nan, 99:np.nan})
-#         pa2 = pa2.replace({77:np.nan, 99:np.nan})
-#         pa3 = pa3.replace({77:np.nan, 99:np.nan})
-
-#         # Sum and cap
-#         total_PA_days = pa1 + pa2 + pa3
-#         total_PA_days = total_PA_days.clip(upper=7)
-
-#     elif cycle == "2021":
-#         # Get variables
-#         mod = df.get("PAD790Q", pd.Series(np.nan, index=df.index)).copy()
-#         vig = df.get("PAD810Q", pd.Series(np.nan, index=df.index)).copy()
-#         u_mod = df.get("PAD790U", pd.Series("W", index=df.index))
-#         u_vig = df.get("PAD810U", pd.Series("W", index=df.index))
-
-#         # Replace special codes with NaN
-#         mod.replace({7777:np.nan, 9999:np.nan}, inplace=True)
-#         vig.replace({7777:np.nan, 9999:np.nan}, inplace=True)
-
-#         # Convert units to days/week
-#         for arr, unit in [(mod,u_mod),(vig,u_vig)]:
-#             arr.loc[unit=="D"] *= 7
-#             arr.loc[unit=="M"] /= 4
-#             arr.loc[unit=="Y"] /= 52
-#             arr[arr < 0] = np.nan
-
-#         # Sum moderate + vigorous
-#         total_PA_days = mod + vig
-#         total_PA_days = total_PA_days.clip(upper=7)
-
-#     # Assign to harmonized dict
-#     h["total_PA_days"] = total_PA_days
-#     h["PA_category"] = h["total_PA_days"].apply(pa_category)
-
-#     # Sun exposure
-#     ded120 = clean_sun_minutes(df.get("DED120", pd.Series(np.nan, index=df.index)))
-#     ded125 = clean_sun_minutes(df.get("DED125", pd.Series(np.nan, index=df.index)))
-#     h["sun_exposure"] = (ded120 + ded125).apply(sun_category)
-
-#     # Sun protective behaviors
-#     h["sun_shade"] = map_sun_behavior(df.get("DEQ034A", pd.Series(np.nan, index=df.index)), shade=True)
-#     h["sun_shirt"] = map_sun_behavior(df.get("DEQ034C", pd.Series(np.nan, index=df.index)))
-#     h["sun_sunscreen"] = map_sun_behavior(df.get("DEQ034D", pd.Series(np.nan, index=df.index)))
-
-
-#     # Diabetes
-#     h["diabetes"] = df.get("DIQ010").map({1:"Yes",2:"No",3:"Borderline"}) if "DIQ010" in df.columns else np.nan
-
-#     # Lab markers
-#     h["calcium_lab"] = df.get("LBXSCA")
-
-#     if "LBXVIDMS" in df.columns:
-#         h["vitamin_D"] = df["LBXVIDMS"]
-#     elif "LBDVIDMS" in df.columns:
-#         h["vitamin_D"] = df["LBDVIDMS"]
-#     else:
-#         h["vitamin_D"] = pd.Series(np.nan, index=df.index)
-
-#     h["vitamin_D_deficiency"] = h["vitamin_D"].apply(lambda x: 1 if pd.notna(x) and x < 50 else (0 if pd.notna(x) else np.nan))
-
-#     return h
-
-# # =====================================================
-# # Process all cycles
-# # =====================================================
-# all_cycles = ["2001","2003","2005","2007","2009","2011","2013","2015","2017","2021"]
-
-# all_dfs = []
-
-# for cycle in all_cycles:
-#     df_cycle = harmonize_cycle(cycle)
-
-#     if df_cycle.empty:
-#         print(f"Skipping {cycle} (empty)")
-#         continue
-
-#     # Save per-cycle file
-#     df_cycle.to_csv(f"harmonised_{cycle}.csv", index=False)
-
-#     all_dfs.append(df_cycle)
-
-# # Master file
-# harmonised_master = pd.concat(all_dfs, ignore_index=True)
-
-# # Adjust weight for pooled cycles
-# harmonised_master["MEC_weight_adj"] = harmonised_master["MEC_weight"] / len(all_cycles)
-
-# harmonised_master.to_csv("harmonised_all_cycles.csv", index=False)
-# print("Harmonization complete. Master file saved.")
+# =====================================================
+# Helper function to load XPT files
+# =====================================================
+def load_xpt(url, columns=None):
+    try:
+        r = requests.get(url)
+        r.raise_for_status()
+        df = pd.read_sas(BytesIO(r.content), format="xport")
+        if columns:
+            df = df[[c for c in columns if c in df.columns]]
+        return df
+    except Exception as e:
+        print(f"Warning: Could not load {url}: {e}")
+        return pd.DataFrame()
+
+# =====================================================
+# Cap PA days between 0–7
+# =====================================================
+def cap_range(series, max_val=7):
+    return series.clip(lower=0, upper=max_val)
+
+# =====================================================
+# PA category
+# =====================================================
+def pa_category(x):
+    if pd.isna(x):
+        return np.nan
+    elif x <= 2:
+        return "Low"
+    elif x <= 4:
+        return "Moderate"
+    return "High"
+
+
+# =====================================================
+# Cycle → File → Variables
+# =====================================================
+
+CYCLE_FILE_VARS = {
+    "2001": {
+        "DEMO_B": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_B": ["SEQN","BMXBMI"],
+        "SMQ_B": ["SEQN","SMQ020","SMQ040"],
+        "ALQ_B": ["SEQN","ALD100"],
+        "DBQ_B": ["SEQN","DBD229"],
+        "DRXTOT_B": ["SEQN","DRXTCALC"],
+        "DIQ_B": ["SEQN","DIQ010"],
+        "DEQ_B": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
+        "PAQ_B": ["SEQN","PAD020","PAQ050Q","PAQ050U"],
+        "L40_B": ["SEQN","LBXSCA"],
+        "VID_B": ["SEQN","LBDVIDMS"]
+    },
+    "2003": {
+        "DEMO_C": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_C": ["SEQN","BMXBMI"],
+        "SMQ_C": ["SEQN","SMQ020","SMQ040"],
+        "ALQ_C": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
+        "DBQ_C": ["SEQN","DBQ229"],
+        "DR1TOT_C": ["SEQN","DR1TCALC"],
+        "DR2TOT_C": ["SEQN","DR2TCALC"],
+        "DIQ_C": ["SEQN","DIQ010"],
+        "DEQ_C": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
+        "PAQ_C": ["SEQN","PAD020","PAQ050Q","PAQ050U"],
+        "L40_C": ["SEQN","LBXSCA"],
+        "VID_C": ["SEQN","LBDVIDMS"]
+    },
+    "2005": {
+        "DEMO_D": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_D": ["SEQN","BMXBMI"],
+        "SMQ_D": ["SEQN","SMQ020","SMQ040"],
+        "ALQ_D": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
+        "DBQ_D": ["SEQN","DBQ229"],
+        "DR1TOT_D": ["SEQN","DR1TCALC"],
+        "DR2TOT_D": ["SEQN","DR2TCALC"],
+        "DIQ_D": ["SEQN","DIQ010"],
+        "DEQ_D": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
+        "PAQ_D": ["SEQN","PAD020","PAQ050Q","PAQ050U"],
+        "BIOPRO_D": ["SEQN","LBXSCA"],
+        "VID_D": ["SEQN","LBDVIDMS"]
+    },
+    "2007": {
+        "DEMO_E": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_E": ["SEQN","BMXBMI"],
+        "SMQ_E": ["SEQN","SMQ020","SMQ040"],
+        "ALQ_E": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
+        "DBQ_E": ["SEQN","DBQ229"],
+        "DR1TOT_E": ["SEQN","DR1TCALC"],
+        "DR2TOT_E": ["SEQN","DR2TCALC"],
+        "DIQ_E": ["SEQN","DIQ010"],
+        # "DEQ_E": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"], # File Not Present
+        "PAQ_E": ["SEQN","PAQ640","PAQ655","PAQ670"],
+        "BIOPRO_E": ["SEQN","LBXSCA"],
+        "VID_E": ["SEQN","LBXVIDMS"]
+    },
+    "2009": {
+        "DEMO_F": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_F": ["SEQN","BMXBMI"],
+        "SMQ_F": ["SEQN","SMQ020","SMQ040"],
+        "ALQ_F": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
+        "DBQ_F": ["SEQN","DBQ229"],
+        "DR1TOT_F": ["SEQN","DR1TCALC"],
+        "DR2TOT_F": ["SEQN","DR2TCALC"],
+        "DIQ_F": ["SEQN","DIQ010"],
+        "DEQ_F": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
+        "PAQ_F": ["SEQN","PAQ640","PAQ655","PAQ670"],
+        "BIOPRO_F": ["SEQN","LBXSCA"],
+        "VID_F": ["SEQN","LBXVIDMS"]
+    },
+    "2011": {
+        "DEMO_G": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_G": ["SEQN","BMXBMI"],
+        "SMQ_G": ["SEQN","SMQ020","SMQ040"],
+        "ALQ_G": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
+        "DBQ_G": ["SEQN","DBQ229"],
+        "DR1TOT_G": ["SEQN","DR1TCALC"],
+        "DR2TOT_G": ["SEQN","DR2TCALC"],
+        "DIQ_G": ["SEQN","DIQ010"],
+        "DEQ_G": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
+        "PAQ_G": ["SEQN","PAQ640","PAQ655","PAQ670"],
+        "BIOPRO_G": ["SEQN","LBXSCA"],
+        "VID_G": ["SEQN","LBXVIDMS"]
+    },
+    "2013": {
+        "DEMO_H": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_H": ["SEQN","BMXBMI"],
+        "SMQ_H": ["SEQN","SMQ020","SMQ040"],
+        "ALQ_H": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
+        "DBQ_H": ["SEQN","DBQ229"],
+        "DR1TOT_H": ["SEQN","DR1TCALC"],
+        "DR2TOT_H": ["SEQN","DR2TCALC"],
+        "DIQ_H": ["SEQN","DIQ010"],
+        "DEQ_H": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
+        "PAQ_H": ["SEQN","PAQ640","PAQ655","PAQ670"],
+        "BIOPRO_H": ["SEQN","LBXSCA"],
+        "VID_H": ["SEQN","LBXVIDMS"]
+    },
+    "2015": {
+        "DEMO_I": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_I": ["SEQN","BMXBMI"],
+        "SMQ_I": ["SEQN","SMQ020","SMQ040"],
+        "ALQ_I": ["SEQN","ALQ101","ALQ120Q","ALQ120U"],
+        "DBQ_I": ["SEQN","DBQ229"],
+        "DR1TOT_I": ["SEQN","DR1TCALC"],
+        "DR2TOT_I": ["SEQN","DR2TCALC"],
+        "DIQ_I": ["SEQN","DIQ010"],
+        "DEQ_I": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
+        "PAQ_I": ["SEQN","PAQ640","PAQ655","PAQ670"],
+        "BIOPRO_I": ["SEQN","LBXSCA"],
+        "VID_I": ["SEQN","LBXVIDMS"]
+    },
+    "2017": { 
+        "DEMO_J": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_J": ["SEQN","BMXBMI"], 
+        "SMQ_J": ["SEQN","SMQ020","SMQ040"], 
+        "ALQ_J": ["SEQN","ALQ121"], 
+        "DBQ_J": ["SEQN","DBQ229"], 
+        "DR1TOT_J": ["SEQN","DR1TCALC"], 
+        "DR2TOT_J": ["SEQN","DR2TCALC"], 
+        "DIQ_J": ["SEQN","DIQ010"], 
+        "DEQ_J": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"], 
+        "PAQ_J": ["SEQN","PAQ640","PAQ655","PAQ670"], 
+        "BIOPRO_J": ["SEQN","LBXSCA"],
+        "VID_J": ["SEQN","LBXVIDMS"]
+    },
+    "2021": {
+        "DEMO_L": ["SEQN","RIAGENDR","RIDAGEYR","RIDRETH1","INDFMPIR","DMDEDUC2","DMDEDUC3","DMDHHSIZ","WTMEC2YR"],
+        "BMX_L": ["SEQN","BMXBMI"],
+        "SMQ_L": ["SEQN","SMQ020","SMQ040"],
+        "ALQ_L": ["SEQN","ALQ121"],
+        "DBQ_L": ["SEQN","PAD790Q","PAD790U","PAD810Q","PAD810U"],
+        "DR1TOT_L": ["SEQN","DR1TCALC"],
+        "DR2TOT_L": ["SEQN","DR2TCALC"],
+        "DIQ_L": ["SEQN","DIQ010"],
+        "DEQ_L": ["SEQN","DED120","DED125","DEQ034A","DEQ034C","DEQ034D"],
+        "PAQ_L": ["SEQN","PAD790Q","PAD790U","PAD810Q","PAD810U"],
+        "BIOPRO_L": ["SEQN","LBXSCA"],
+        "VID_L": ["SEQN","LBXVIDMS"]  
+    }
+}
+
+
+
+# =====================================================
+# Derived functions
+# =====================================================
+def age_cat(x):
+    if pd.isna(x): return np.nan
+    if x < 18: return "<18"
+    if x <= 44: return "18–44"
+    if x <= 65: return "45–65"
+    return ">65"
+
+def pir_cat(x):
+    if pd.isna(x): return np.nan
+    if x <= 1.3: return "Low"
+    if x <= 3.5: return "Middle"
+    return "High"
+
+def bmi_cat(x):
+    if pd.isna(x): return np.nan
+    if x < 18.5: return "Underweight"
+    if x < 25: return "Normal"
+    if x < 30: return "Overweight"
+    if x > 30: return "Obese"
+    else: return np.nan
+
+def sun_category(x):
+    if pd.isna(x): return np.nan
+    if x == 0: return "Never"
+    if x <= 14: return "Rare"
+    if x <= 480: return "Sometimes"
+    if x <= 1440: return "Frequent"
+    return "Regular"
+
+# =====================================================
+# Alcohol harmonization (leave as-is)
+# =====================================================
+def alcohol_harmonize(row, cycle):
+    alc_yesno = np.nan
+    drinks_per_year = np.nan
+
+    if cycle == "2001":
+        val = row.get("ALD100")
+        if pd.notna(val):
+            alc_yesno = "Yes" if val == 1 else ("No" if val == 2 else np.nan)
+
+    elif cycle in ["2003","2005","2007","2009","2011","2013","2015"]:
+        val = row.get("ALQ101")
+        alc_yesno = "Yes" if val == 1 else ("No" if val == 2 else np.nan)
+
+        freq = row.get("ALQ120Q")
+        unit = row.get("ALQ120U")
+        if pd.notna(freq) and pd.notna(unit):
+            if unit == 1:  # per week
+                drinks_per_year = freq * 52
+            elif unit == 2:  # per month
+                drinks_per_year = freq * 12
+            elif unit == 3:  # per year
+                drinks_per_year = freq
+
+    elif cycle in ["2017","2021"]:
+        val = row.get("ALQ121")
+        alc_yesno = "Yes" if (pd.notna(val) and ( val > 0 and val <=10 )) else ("No" if val == 0 else np.nan)
+
+        code_to_drinks = {0:0,1:365,2:330,3:182,4:104,5:52,6:30,7:12,8:9,9:4,10:1}
+        if pd.notna(val):
+            drinks_per_year = code_to_drinks.get(int(val), np.nan)
+
+    return pd.Series([alc_yesno, drinks_per_year])
+
+# =====================================================
+# Education harmonization
+# =====================================================
+def harmonize_education(educ2, educ3, age):
+
+    if age < 20:
+        if pd.isna(educ3) or educ3 in [77,99]: return np.nan
+        if educ3 in [13, 14, 15]:
+            return "High school or above"
+        elif educ3 >= 4:
+            return "High school or below"
+        elif educ3 >= 0:
+            return "Low education"
+        else:
+            return np.nan
+    else:
+        if pd.isna(educ2) or educ2 in [77,99]: return np.nan
+        if educ2 in [4, 5]:
+            return "College"
+        elif educ2 == 3:
+            return "High school"
+        elif educ2 >= 1:
+            return "Less than high school"
+        else:
+            return np.nan
+
+# =====================================================
+# Sun helpers
+# =====================================================
+def clean_sun_minutes(series):
+    return series.replace({3333: np.nan, 7777: np.nan, 9999: np.nan})
+
+def map_sun_behavior(series, shade=False):
+    if shade:
+        return series.map({
+            1: "Always",
+            2: "Most",
+            3: "Sometimes",
+            4: "Rarely",
+            5: "Never",
+            6: "No outdoor exposure"
+        })
+    else:
+        return series.map({
+            1: "Always",
+            2: "Most",
+            3: "Sometimes",
+            4: "Rarely",
+            5: "Never"
+        })
+
+# =====================================================
+# Load and merge raw files per cycle
+# =====================================================
+def load_cycle(cycle):
+    base = f"https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/{cycle}/DataFiles/"
+    dfs = {}
+
+    for file, vars_ in CYCLE_FILE_VARS[cycle].items():
+        url = f"{base}{file}.XPT"
+        df = load_xpt(url, vars_)
+        if not df.empty:
+            dfs[file] = df
+
+    if not dfs:
+        return pd.DataFrame()
+
+    out = next(iter(dfs.values()))
+    for df in list(dfs.values())[1:]:
+        out = out.merge(df, on="SEQN", how="outer")
+
+    return out
+
+
+# =====================================================
+# Harmonize one cycle
+# =====================================================
+def harmonize_cycle(cycle):
+    print(f"Processing {cycle}")
+    df = load_cycle(cycle)
+    if df.empty:
+        return df
+    h = pd.DataFrame({"SEQN": df["SEQN"]})
+    h["cycle"] = cycle
+
+    # MEC weight
+    h["MEC_weight"] = df.get("WTMEC2YR", np.nan)
+
+    # Demographics
+    h["gender"] = df.get("RIAGENDR").map({1:"Male",2:"Female"})
+    h["age_cat"] = df.get("RIDAGEYR").apply(age_cat)
+    h["race_ethnicity"] = df.get("RIDRETH1").map({
+        1:"Mexican American",2:"Other Hispanic",
+        3:"Non-Hispanic White",4:"Non-Hispanic Black",5:"Other"
+    }) if df.get("RIDRETH1") is not None else np.nan
+
+    h["PIR_cat"] = df.get("INDFMPIR").apply(pir_cat)
+
+    # Education
+    h["education"] = df.apply(lambda row: harmonize_education(row.get("DMDEDUC2"), row.get("DMDEDUC3"), row.get("RIDAGEYR")), axis=1)
+
+    # Household size
+    h["household_size"] = df.get("DMDHHSIZ")
+
+    # BMI
+    h["BMI_cat"] = df.get("BMXBMI").apply(bmi_cat) if "BMXBMI" in df.columns else np.nan
+
+    # Smoking
+    smq020 = df.get("SMQ020")
+    smq040 = df.get("SMQ040")
+    h["smoker_ever"] = smq020.map({1:"Yes",2:"No"}) if smq020 is not None else np.nan
+    h["smoker_current"] = smq040.map({1:"Every day",2:"Some days",3:"Not at all"}) if smq040 is not None else np.nan
+
+    # Alcohol
+    alc = df.apply(lambda row: alcohol_harmonize(row, cycle), axis=1)
+    h["alcohol_yesno"] = alc[0]
+    h["alcohol_drinks_per_year"] = alc[1]
+
+    # Milk intake
+    if "DBQ229" in df.columns:
+        milk = df["DBQ229"]
+    elif "DBD229" in df.columns:
+        milk = df["DBD229"]
+    else:
+        milk = pd.Series(np.nan, index=df.index)
+    h["milk_intake"] = milk.map({1:"Regular", 2:"Never", 3:"Sometimes"})
+
+    # Calcium intake
+    if "DRXTCALC" in df.columns:
+        h["calcium_intake"] = df["DRXTCALC"]
+    elif all(col in df.columns for col in ["DR1TCALC","DR2TCALC"]):
+        h["calcium_intake"] = df[["DR1TCALC","DR2TCALC"]].mean(axis=1, skipna=True)
+    else:
+        h["calcium_intake"] = np.nan
+
+    # Initialize total_PA_days
+    total_PA_days = pd.Series(np.nan, index=df.index)
+
+    if cycle in ["2001","2003","2005"]:
+        # Get variables
+        pad = df.get("PAD020", pd.Series(np.nan, index=df.index))
+        q = df.get("PAQ050Q", pd.Series(np.nan, index=df.index))
+        u = df.get("PAQ050U", pd.Series(np.nan, index=df.index))
+
+        # Replace special codes with NaN
+        pad = pad.replace({2:0, 3:0, 7:np.nan, 9:np.nan})  # 1=Yes, 2=No, 3=Unable
+        q = q.replace({77777:np.nan, 99999:np.nan})
+        u = u.replace({7:np.nan, 9:np.nan})
+
+        # Convert units to days
+        conv = q.copy()
+        conv[u==1] *= 1      # per day → keep as is
+        conv[u==2] *= 7      # per week → multiply by 7
+        conv[u==3] /= 4      # per month → divide by ~4 weeks
+        conv[u.isna()] = np.nan
+
+        # Combine with PAD020 contribution
+        total_PA_days = pad + conv
+        total_PA_days = total_PA_days.clip(upper=7)  # cap at 7
+
+    elif cycle in ["2007","2009","2011","2013","2015","2017"]:
+        # Get variables
+        pa1 = df.get("PAQ640", pd.Series(np.nan, index=df.index))
+        pa2 = df.get("PAQ655", pd.Series(np.nan, index=df.index))
+        pa3 = df.get("PAQ670", pd.Series(np.nan, index=df.index))
+
+        # Replace special codes with NaN
+        pa1 = pa1.replace({77:np.nan, 99:np.nan})
+        pa2 = pa2.replace({77:np.nan, 99:np.nan})
+        pa3 = pa3.replace({77:np.nan, 99:np.nan})
+
+        # Sum and cap
+        total_PA_days = pa1 + pa2 + pa3
+        total_PA_days = total_PA_days.clip(upper=7)
+
+    elif cycle == "2021":
+        # Get variables
+        mod = df.get("PAD790Q", pd.Series(np.nan, index=df.index)).copy()
+        vig = df.get("PAD810Q", pd.Series(np.nan, index=df.index)).copy()
+        u_mod = df.get("PAD790U", pd.Series("W", index=df.index))
+        u_vig = df.get("PAD810U", pd.Series("W", index=df.index))
+
+        # Replace special codes with NaN
+        mod.replace({7777:np.nan, 9999:np.nan}, inplace=True)
+        vig.replace({7777:np.nan, 9999:np.nan}, inplace=True)
+
+        # Convert units to days/week
+        for arr, unit in [(mod,u_mod),(vig,u_vig)]:
+            arr.loc[unit=="D"] *= 7
+            arr.loc[unit=="M"] /= 4
+            arr.loc[unit=="Y"] /= 52
+            arr[arr < 0] = np.nan
+
+        # Sum moderate + vigorous
+        total_PA_days = mod + vig
+        total_PA_days = total_PA_days.clip(upper=7)
+
+    # Assign to harmonized dict
+    h["total_PA_days"] = total_PA_days
+    h["PA_category"] = h["total_PA_days"].apply(pa_category)
+
+    # Sun exposure
+    ded120 = clean_sun_minutes(df.get("DED120", pd.Series(np.nan, index=df.index)))
+    ded125 = clean_sun_minutes(df.get("DED125", pd.Series(np.nan, index=df.index)))
+    h["sun_exposure"] = (ded120 + ded125).apply(sun_category)
+
+    # Sun protective behaviors
+    h["sun_shade"] = map_sun_behavior(df.get("DEQ034A", pd.Series(np.nan, index=df.index)), shade=True)
+    h["sun_shirt"] = map_sun_behavior(df.get("DEQ034C", pd.Series(np.nan, index=df.index)))
+    h["sun_sunscreen"] = map_sun_behavior(df.get("DEQ034D", pd.Series(np.nan, index=df.index)))
+
+
+    # Diabetes
+    h["diabetes"] = df.get("DIQ010").map({1:"Yes",2:"No",3:"Borderline"}) if "DIQ010" in df.columns else np.nan
+
+    # Lab markers
+    h["calcium_lab"] = df.get("LBXSCA")
+
+    if "LBXVIDMS" in df.columns:
+        h["vitamin_D"] = df["LBXVIDMS"]
+    elif "LBDVIDMS" in df.columns:
+        h["vitamin_D"] = df["LBDVIDMS"]
+    else:
+        h["vitamin_D"] = pd.Series(np.nan, index=df.index)
+
+    h["vitamin_D_deficiency"] = h["vitamin_D"].apply(lambda x: 1 if pd.notna(x) and x < 50 else (0 if pd.notna(x) else np.nan))
+
+    return h
+
+# =====================================================
+# Process all cycles
+# =====================================================
+all_cycles = ["2001","2003","2005","2007","2009","2011","2013","2015","2017","2021"]
+
+all_dfs = []
+
+for cycle in all_cycles:
+    df_cycle = harmonize_cycle(cycle)
+
+    if df_cycle.empty:
+        print(f"Skipping {cycle} (empty)")
+        continue
+
+    # Save per-cycle file
+    df_cycle.to_csv(f"harmonised_{cycle}.csv", index=False)
+
+    all_dfs.append(df_cycle)
+
+# Master file
+harmonised_master = pd.concat(all_dfs, ignore_index=True)
+
+# Adjust weight for pooled cycles
+harmonised_master["MEC_weight_adj"] = harmonised_master["MEC_weight"] / len(all_cycles)
+
+harmonised_master.to_csv("harmonised_all_cycles.csv", index=False)
+print("Harmonization complete. Master file saved.")
 
 # ================================
 # Load CSV safely
@@ -537,6 +537,26 @@ missing_df = pd.DataFrame({
 
 print("Missing Values for each Variable in dataset:")
 print(missing_df)
+
+# import missingno as msno
+# import matplotlib.pyplot as plt
+
+# # We select the key lifestyle/dietary variables that show structural missingness
+# cols_to_plot = [
+#     "sun_exposure", "sun_shade", "sun_shirt", "sun_sunscreen", 
+#     "milk_intake", "total_PA_days", "alcohol_drinks_per_year"
+# ]
+
+# print("Generating Structural Missingness Matrix...")
+# fig = plt.figure(figsize=(12, 6))
+# # The sparkline=False removes the line on the right, keeping it clean and academic
+# msno.matrix(df[cols_to_plot], sparkline=False, color=(0.6, 0.1, 0.1), figsize=(12,6), fontsize=12)
+
+# plt.title('Structural Missingness Matrix (Pre-Imputation)', fontsize=18, fontweight='bold', pad=30)
+# plt.tight_layout()
+# plt.savefig("Missingness_Matrix.png", dpi=300, bbox_inches='tight')
+# plt.show()
+# print("Saved: Missingness_Matrix.png")
 
 sun_vars = ["sun_exposure", "sun_shade", "sun_shirt", "sun_sunscreen"]
 
@@ -794,6 +814,42 @@ df_mice["calcium_intake"] = df_mice["calcium_intake"].round().astype("Int64")
 df_mice["calcium_lab"] = df_mice["calcium_lab"].round(1).astype(float)
 df_mice["household_size"] = df_mice["household_size"].round().astype("Int64")
 
+
+# import seaborn as sns
+# import matplotlib.pyplot as plt
+
+# print("Generating MICE KDE Overlay validation plot...")
+
+# # 1. Grab the ORIGINAL data (with NaNs) from the base 'df' 
+# # 2. Grab the IMPUTED data (no NaNs) from the 'df_mice' dataframe
+# # We use 'total_PA_days' as the perfect continuous variable to prove the imputer worked smoothly
+# original_pa_days = df['total_PA_days'].dropna() 
+# imputed_pa_days = df_mice['total_PA_days']
+
+# plt.figure(figsize=(10, 6))
+
+# # Plot the Original Data (Blue, solid line)
+# sns.kdeplot(original_pa_days, color='#3498db', fill=True, alpha=0.4, 
+#             label='Original Data (Pre-Imputation)', linewidth=2)
+
+# # Plot the Imputed Data (Red, dashed line)
+# sns.kdeplot(imputed_pa_days, color='#e74c3c', fill=True, alpha=0.4, 
+#             label='MICE Imputed Data', linestyle='--', linewidth=2)
+
+# # Formatting for Thesis
+# plt.title('KDE Overlay: Total Physical Activity Days (Pre vs. Post MICE Imputation)', 
+#           fontsize=16, fontweight='bold', pad=15)
+# plt.xlabel('Total Physical Activity Days (per week)', fontsize=12, fontweight='bold')
+# plt.ylabel('Density', fontsize=12, fontweight='bold')
+
+# # Ensure the x-axis matches the logical bounds of your data (0 to 7 days)
+# plt.xlim(-1, 8) 
+# plt.legend(fontsize=12, loc='upper right', frameon=True, shadow=True)
+
+# plt.tight_layout()
+# plt.savefig("KDE_Pre_Post_Imputation_PA_days.png", dpi=300, bbox_inches='tight')
+# plt.show()
+# print("Saved: KDE_Pre_Post_Imputation_PA_days.png")
 
 # --------------------------------
 # 8. DERIVE PA_CATEGORY
