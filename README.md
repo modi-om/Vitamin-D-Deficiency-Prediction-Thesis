@@ -1,1 +1,1 @@
-Vitamin D Deficiency Prediction with Fairness Aware Optmization and XAI
+Vitamin D Deficiency Prediction with Fairness Aware Optimization and Explainable AI
